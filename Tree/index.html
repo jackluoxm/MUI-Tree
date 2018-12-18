@@ -5,6 +5,7 @@
 		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
 		<title></title>
 		<script src="js/mui.min.js"></script>
+		<script src="js/accordion.js"></script>
 		<link href="css/mui.min.css" rel="stylesheet" />
 		<script type="text/javascript" charset="utf-8">
 			mui.init();
@@ -335,288 +336,7 @@
 			</div>
 		</div>
 		<script type="text/javascript">
-			getAreas(setAccordion);
-			function showColors(colors) {
-				var colorsContainer = document.getElementsByClassName('showColors')[0];
-				colorsContainer.style.display = '';
-				var colorButtons = colorsContainer.getElementsByTagName('button');
-				for (var i = 0; i < colorButtons.length; i++) {
-					colorButtons[i].style.backgroundColor = colors[i];
-				}
-			}
-			function setAccordion(data) {
-				data = mockData;
-				var options = {
-					elementID: 'test2',
-					data: data
-				};
-				accordion(options);
-				loadList(data);
-			}
-			// 获取区域数据
-			function getAreas(callback) {
-				var url = 'http://....../area/get';
-				mui.ajax({
-					url: url,
-					type: 'get',
-					contentType: 'application/json; charset=utf-8',
-					dataType: 'json',
-					success: function(data) {
-						var result = formatToTree(data);
-						callback(result);
-					},
-					error: function(xhr, type, errorThrown) {
-						mui.toast(errorThrown);
-						callback();//测试数据
-						return;
-					}
-				});
-			}
-			///从json数组结构转换为json树形结构
-			function formatToTree(jsonData) {
-				var result = {
-					id: '0',
-					subID: '0',
-					name: '系统',
-					children: []
-				};
-
-				function compareNum(item1, item2, att) {
-					var result1 = 0;
-					var a1 = getNum(item1, att);
-					var a2 = getNum(item2, att);
-					if (a1 < a2) {
-						result1 = -1;
-					} else if (a1 == a2) {
-						result1 = 0;
-					} else if (a1 > a2) {
-						result1 = 1;
-					}
-					return result1;
-				}
-
-				function getNum(item, att) {
-					var result2 = 0;
-					result2 = Number.parseInt(String(item[att]).substring(item[att].length - 3, item[att].length - 1));
-					return result2;
-				}
-				var comparer = function(item1, item2) {
-					var result3 = 0;
-					if (item1.F_ParAreaID.length < item2.F_ParAreaID.length) {
-						result3 = -1;
-					} else if (item1.F_ParAreaID.length == item2.F_ParAreaID.length) {
-						if (item1.F_ParAreaID.length === 1) {
-							result3 = compareNum(item1, item2, 'F_SubAreaID');
-						} else {
-							result3 = compareNum(item1, item2, 'F_ParAreaID');
-							if (result === 0) {
-								result3 = compareNum(item1, item2, 'F_SubAreaID');
-							}
-						}
-						result3 = 0;
-					} else if (item1.F_ParAreaID.length > item2.F_ParAreaID.length) {
-						result3 = 1;
-					}
-					return result3;
-				};
-				jsonData.sort(comparer);
-
-				function addChildren(i, p) {
-					var p2 = p[p.length - 1];
-					for (var j = i + 1; j < jsonData.length; j++) {
-						var item = jsonData[j];
-						pushChild(p2, item, j);
-					}
-				}
-
-				function pushChild(p, item, i) {
-					if (item.F_ParAreaID === p.subID) {
-						p.children.push(formatItem(item));
-						addChildren(i, p.children);
-					}
-				}
-
-				function formatItem(item) {
-					var result4 = {
-						id: item.F_AreaID,
-						subID: item.F_SubAreaID,
-						name: item.F_AreaName,
-						children: []
-					};
-					return result4;
-				}
-
-				for (var i = 0; i < jsonData.length; i++) {
-					var item = jsonData[i];
-					if (item.F_ParAreaID === result.subID) {
-						result.children.push(formatItem(item));
-						addChildren(i, result.children);
-					}
-				}
-				return result;
-			}
-			///折叠面板
-			function accordion(options) {
-				var n = 0;
-				var colors = ['#007AFF', '#1E8AFF', '#448FFF', '#77ADFF', '#88B8FF', '#99C2FF', '#BBD6FF', '#81BEF7',
-					'#EEF5FF',
-					'#A1A1A1', '#8B3E2F', '#303030', '#228B22', '#20B2AA'
-				];
-				showColors(colors);//显示颜色 便于测试
-				init = function(options) {
-					if (options.colors) {
-						colors = options.colors;
-					}
-					if (options.elementID && options.data) {
-						loadAccordionList(options.elementID, options.data);
-					}
-				};
-				loadAccordionList = function(elementID, data) {
-					var a = document.getElementById(elementID);
-					var b = document.createElement('ul');
-					b = getChildrenLi(b, data, colors[0])
-					a.appendChild(b);
-				};
-				hideChildren = function(i, li, allLis) {
-					var p = false;
-					var theID = li.id;
-					for (var j = i + 1; j < allLis.length; j++) {
-						var nli = allLis[j];
-						var parentID = nli.getAttribute('parentID');
-						if (parentID == theID) {
-							nli.className = 'fold';
-							p = true;
-							hideChildren(j, nli, allLis);
-						}
-					}
-					if (p) {
-						// li.childNodes[0].childNodes[1].innerText = '∨';
-						li.childNodes[0].childNodes[1].className = 'parentSymbol';
-					}
-				}
-				showList = function(obj, id) {
-					var allLis = obj.parentNode.parentNode.parentNode.childNodes;
-					for (var i = 0; i < allLis.length; i++) {
-						if (allLis[i].id != id) {
-							var li = allLis[i];
-							var parentID = li.getAttribute('parentID');
-							if (parentID == id) {
-								var c = li.className;
-								li.className = c === 'fold' ? 'unFold' : 'fold';
-								hideChildren(i, li, allLis);
-							}
-						}
-					}
-					obj.parentNode.parentNode.className = 'unFold';
-					// obj.innerText = obj.innerText === '∨' ? '∧' : '∨';
-					obj.className = obj.className === 'parentActivedSymbol' ? 'parentSymbol' : 'parentActivedSymbol';
-				};
-				getAccordionLi = function(data, color, parentID) {
-					for (var j = 0; j < colors.length; j++) {
-						var c = colors[j];
-						if (color.toLowerCase() == c.toLowerCase()) {
-							console.log('j', j, data.name);
-							break;
-						}
-					}
-					var c, d, f, nameSpan;
-					c = document.createElement('li');
-					d = document.createElement('div');
-					f = document.createTextNode(data.name);
-					nameSpan = document.createElement('span');
-					nameSpan.appendChild(f);
-					c.id = data.id;
-					if (color) {
-						c.style.backgroundColor = color;
-					}
-					if (parentID) {
-						c.setAttribute('parentID', parentID);
-						c.className = 'fold';
-					}
-					nameSpan.addEventListener('tap', function(mouseEvent) {
-						handleSelectArea(mouseEvent.target, data.id);
-					});
-					d.appendChild(nameSpan);
-					var parent = data.children && data.children.length;
-					if (parent) {
-						var s = document.createElement('span');
-						s.addEventListener('tap', function(mouseEvent) {
-							showList(mouseEvent.target, data.id);
-						});
-						s.className = 'parentSymbol';
-						d.appendChild(s);
-					}
-					c.appendChild(d);
-					return c;
-				};
-				isParent = function(ul, data, col, parentID) {
-					var c = getAccordionLi(data, col, parentID);
-					ul.appendChild(c);
-					var p = data.children && data.children.length;
-					return p;
-				}
-
-				function colorRGB2Hex(color) {
-					var rgb = color.split(',');
-					var r = parseInt(rgb[0].split('(')[1]);
-					var g = parseInt(rgb[1]);
-					var b = parseInt(rgb[2].split(')')[0]);
-					var hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-					return hex;
-				}
-				getChildrenLi = function(ul, data, col, m, parentID) {
-
-					var p = isParent(ul, data, col, parentID);
-					if (p) {
-						if (m) {
-							if (m - n == 1) {
-								n++;
-							}
-							var colStr1 = colors[m];
-						} else {
-							n++;
-							var colStr1 = colors[n];
-						}
-						for (var i = 0; i < data.children.length; i++) {
-							p = isParent(ul, data.children[i], colStr1, data.id);
-							if (p) {
-								if (i > 0) {
-									var lastLi;
-									for (var g = 0; g < ul.childNodes.length; g++) {
-										var id = ul.childNodes[g].id;
-										if (id == data.children[i - 1].id) {
-											lastLi = ul.childNodes[g];
-											break;
-										}
-									}
-									var lastColorValue = colorRGB2Hex(lastLi.style.backgroundColor);
-									if (lastColorValue.toLowerCase() !== colors[n].toLowerCase()) {
-										for (var j = 0; j < colors.length; j++) {
-											var color = colors[j];
-											if (color.toLowerCase() === lastColorValue.toLowerCase()) {
-												n = j;
-												break;
-											}
-										}
-									}
-								}
-								if ((m && m == n) || (!m)) {
-									n++;
-								}
-								var colStr2 = colors[n];
-								var t = n + 1;
-								for (var j = 0; j < data.children[i].children.length; j++) {
-									getChildrenLi(ul, data.children[i].children[j], colStr2, t, data.children[i].id);
-								}
-							}
-						}
-					}
-					return ul;
-				};
-				init(options);
-			};
-
-			var mockData = {
+					var mockData = {
 				id: 1,
 				name: 'My Tree',
 				children: [{
@@ -763,6 +483,299 @@
 					}
 				]
 			};
+
+			// getAreas(setAccordion);
+			function showColors(colors) {
+				var colorsContainer = document.getElementsByClassName('showColors')[0];
+				colorsContainer.style.display = '';
+				var colorButtons = colorsContainer.getElementsByTagName('button');
+				for (var i = 0; i < colorButtons.length; i++) {
+					colorButtons[i].style.backgroundColor = colors[i];
+				}
+			}
+			// function setAccordion(data) {
+			// 	data = mockData;
+			// 	var options = {
+			// 		elementID: 'test2',
+			// 		data: data
+			// 	};
+			// 	accordion(options);
+			// 	loadList(data);
+			// }
+			var options = {
+					elementID: 'test2',
+					// showElementId: 'building',
+					// treeDataName: 'buildingTree',
+					data: mockData,
+					// handleSelectArea: handleSelectArea,
+					// setAccordionFunc: setBuildingAccordion,
+					// idName: 'buildingId',
+					// textName:'buildingName'
+				};
+				accordion.init(options);
+			// 获取区域数据
+			function getAreas(callback) {
+				var url = 'http://....../area/get';
+				mui.ajax({
+					url: url,
+					type: 'get',
+					contentType: 'application/json; charset=utf-8',
+					dataType: 'json',
+					success: function(data) {
+						var result = formatToTree(data);
+						callback(result);
+					},
+					error: function(xhr, type, errorThrown) {
+						mui.toast(errorThrown);
+						callback();//测试数据
+						return;
+					}
+				});
+			}
+			///从json数组结构转换为json树形结构
+			function formatToTree(jsonData) {
+				var result = {
+					id: '0',
+					subID: '0',
+					name: '系统',
+					children: []
+				};
+
+				function compareNum(item1, item2, att) {
+					var result1 = 0;
+					var a1 = getNum(item1, att);
+					var a2 = getNum(item2, att);
+					if (a1 < a2) {
+						result1 = -1;
+					} else if (a1 == a2) {
+						result1 = 0;
+					} else if (a1 > a2) {
+						result1 = 1;
+					}
+					return result1;
+				}
+
+				function getNum(item, att) {
+					var result2 = 0;
+					result2 = Number.parseInt(String(item[att]).substring(item[att].length - 3, item[att].length - 1));
+					return result2;
+				}
+				var comparer = function(item1, item2) {
+					var result3 = 0;
+					if (item1.F_ParAreaID.length < item2.F_ParAreaID.length) {
+						result3 = -1;
+					} else if (item1.F_ParAreaID.length == item2.F_ParAreaID.length) {
+						if (item1.F_ParAreaID.length === 1) {
+							result3 = compareNum(item1, item2, 'F_SubAreaID');
+						} else {
+							result3 = compareNum(item1, item2, 'F_ParAreaID');
+							if (result === 0) {
+								result3 = compareNum(item1, item2, 'F_SubAreaID');
+							}
+						}
+						result3 = 0;
+					} else if (item1.F_ParAreaID.length > item2.F_ParAreaID.length) {
+						result3 = 1;
+					}
+					return result3;
+				};
+				jsonData.sort(comparer);
+
+				function addChildren(i, p) {
+					var p2 = p[p.length - 1];
+					for (var j = i + 1; j < jsonData.length; j++) {
+						var item = jsonData[j];
+						pushChild(p2, item, j);
+					}
+				}
+
+				function pushChild(p, item, i) {
+					if (item.F_ParAreaID === p.subID) {
+						p.children.push(formatItem(item));
+						addChildren(i, p.children);
+					}
+				}
+
+				function formatItem(item) {
+					var result4 = {
+						id: item.F_AreaID,
+						subID: item.F_SubAreaID,
+						name: item.F_AreaName,
+						children: []
+					};
+					return result4;
+				}
+
+				for (var i = 0; i < jsonData.length; i++) {
+					var item = jsonData[i];
+					if (item.F_ParAreaID === result.subID) {
+						result.children.push(formatItem(item));
+						addChildren(i, result.children);
+					}
+				}
+				return result;
+			}
+			///折叠面板
+			// function accordion(options) {
+			// 	var n = 0;
+			// 	var colors = ['#007AFF', '#1E8AFF', '#448FFF', '#77ADFF', '#88B8FF', '#99C2FF', '#BBD6FF', '#81BEF7',
+			// 		'#EEF5FF',
+			// 		'#A1A1A1', '#8B3E2F', '#303030', '#228B22', '#20B2AA'
+			// 	];
+			// 	showColors(colors);//显示颜色 便于测试
+			// 	init = function(options) {
+			// 		if (options.colors) {
+			// 			colors = options.colors;
+			// 		}
+			// 		if (options.elementID && options.data) {
+			// 			loadAccordionList(options.elementID, options.data);
+			// 		}
+			// 	};
+			// 	loadAccordionList = function(elementID, data) {
+			// 		var a = document.getElementById(elementID);
+			// 		var b = document.createElement('ul');
+			// 		b = getChildrenLi(b, data, colors[0])
+			// 		a.appendChild(b);
+			// 	};
+			// 	hideChildren = function(i, li, allLis) {
+			// 		var p = false;
+			// 		var theID = li.id;
+			// 		for (var j = i + 1; j < allLis.length; j++) {
+			// 			var nli = allLis[j];
+			// 			var parentID = nli.getAttribute('parentID');
+			// 			if (parentID == theID) {
+			// 				nli.className = 'fold';
+			// 				p = true;
+			// 				hideChildren(j, nli, allLis);
+			// 			}
+			// 		}
+			// 		if (p) {
+			// 			// li.childNodes[0].childNodes[1].innerText = '∨';
+			// 			li.childNodes[0].childNodes[1].className = 'parentSymbol';
+			// 		}
+			// 	}
+			// 	showList = function(obj, id) {
+			// 		var allLis = obj.parentNode.parentNode.parentNode.childNodes;
+			// 		for (var i = 0; i < allLis.length; i++) {
+			// 			if (allLis[i].id != id) {
+			// 				var li = allLis[i];
+			// 				var parentID = li.getAttribute('parentID');
+			// 				if (parentID == id) {
+			// 					var c = li.className;
+			// 					li.className = c === 'fold' ? 'unFold' : 'fold';
+			// 					hideChildren(i, li, allLis);
+			// 				}
+			// 			}
+			// 		}
+			// 		obj.parentNode.parentNode.className = 'unFold';
+			// 		// obj.innerText = obj.innerText === '∨' ? '∧' : '∨';
+			// 		obj.className = obj.className === 'parentActivedSymbol' ? 'parentSymbol' : 'parentActivedSymbol';
+			// 	};
+			// 	getAccordionLi = function(data, color, parentID) {
+			// 		for (var j = 0; j < colors.length; j++) {
+			// 			var c = colors[j];
+			// 			if (color.toLowerCase() == c.toLowerCase()) {
+			// 				console.log('j', j, data.name);
+			// 				break;
+			// 			}
+			// 		}
+			// 		var c, d, f, nameSpan;
+			// 		c = document.createElement('li');
+			// 		d = document.createElement('div');
+			// 		f = document.createTextNode(data.name);
+			// 		nameSpan = document.createElement('span');
+			// 		nameSpan.appendChild(f);
+			// 		c.id = data.id;
+			// 		if (color) {
+			// 			c.style.backgroundColor = color;
+			// 		}
+			// 		if (parentID) {
+			// 			c.setAttribute('parentID', parentID);
+			// 			c.className = 'fold';
+			// 		}
+			// 		nameSpan.addEventListener('tap', function(mouseEvent) {
+			// 			handleSelectArea(mouseEvent.target, data.id);
+			// 		});
+			// 		d.appendChild(nameSpan);
+			// 		var parent = data.children && data.children.length;
+			// 		if (parent) {
+			// 			var s = document.createElement('span');
+			// 			s.addEventListener('tap', function(mouseEvent) {
+			// 				showList(mouseEvent.target, data.id);
+			// 			});
+			// 			s.className = 'parentSymbol';
+			// 			d.appendChild(s);
+			// 		}
+			// 		c.appendChild(d);
+			// 		return c;
+			// 	};
+			// 	isParent = function(ul, data, col, parentID) {
+			// 		var c = getAccordionLi(data, col, parentID);
+			// 		ul.appendChild(c);
+			// 		var p = data.children && data.children.length;
+			// 		return p;
+			// 	}
+
+			// 	function colorRGB2Hex(color) {
+			// 		var rgb = color.split(',');
+			// 		var r = parseInt(rgb[0].split('(')[1]);
+			// 		var g = parseInt(rgb[1]);
+			// 		var b = parseInt(rgb[2].split(')')[0]);
+			// 		var hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+			// 		return hex;
+			// 	}
+			// 	getChildrenLi = function(ul, data, col, m, parentID) {
+
+			// 		var p = isParent(ul, data, col, parentID);
+			// 		if (p) {
+			// 			if (m) {
+			// 				if (m - n == 1) {
+			// 					n++;
+			// 				}
+			// 				var colStr1 = colors[m];
+			// 			} else {
+			// 				n++;
+			// 				var colStr1 = colors[n];
+			// 			}
+			// 			for (var i = 0; i < data.children.length; i++) {
+			// 				p = isParent(ul, data.children[i], colStr1, data.id);
+			// 				if (p) {
+			// 					if (i > 0) {
+			// 						var lastLi;
+			// 						for (var g = 0; g < ul.childNodes.length; g++) {
+			// 							var id = ul.childNodes[g].id;
+			// 							if (id == data.children[i - 1].id) {
+			// 								lastLi = ul.childNodes[g];
+			// 								break;
+			// 							}
+			// 						}
+			// 						var lastColorValue = colorRGB2Hex(lastLi.style.backgroundColor);
+			// 						if (lastColorValue.toLowerCase() !== colors[n].toLowerCase()) {
+			// 							for (var j = 0; j < colors.length; j++) {
+			// 								var color = colors[j];
+			// 								if (color.toLowerCase() === lastColorValue.toLowerCase()) {
+			// 									n = j;
+			// 									break;
+			// 								}
+			// 							}
+			// 						}
+			// 					}
+			// 					if ((m && m == n) || (!m)) {
+			// 						n++;
+			// 					}
+			// 					var colStr2 = colors[n];
+			// 					var t = n + 1;
+			// 					for (var j = 0; j < data.children[i].children.length; j++) {
+			// 						getChildrenLi(ul, data.children[i].children[j], colStr2, t, data.children[i].id);
+			// 					}
+			// 				}
+			// 			}
+			// 		}
+			// 		return ul;
+			// 	};
+			// 	init(options);
+			// };
+
 		</script>
 
 		<script type="text/javascript">
